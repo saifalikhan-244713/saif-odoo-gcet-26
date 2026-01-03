@@ -1,38 +1,58 @@
-# Odoo Hackathon Project
+# SyncHR - Employee Management System
 
-A hackathon project focused on building a real-world solution with clean UI, proper workflows, and dynamic data handling.
+## Getting Started
 
----
+Follow these steps to set up and run the project locally.
 
-## 👥 Team Details
+### Prerequisites
 
-**Team Lead**  
-- **Saif Ali Khan**  
-- Email: saifkhanali101@gmail.com  
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL (Ensure your database server is running)
 
-**Team Member**  
-- **Devanshu Maheshwari**  
-- Email: devanshumaheshwari1973@gmail.com  
+### Installation
 
----
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd saif-odoo-gcet26
+    ```
 
-## 🧩 Problem Statement
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-To design and develop a scalable, real-time application that solves a practical business problem using modern web technologies, with emphasis on clean architecture, validation, and user experience.
+3.  **Environment Setup**
+    Create a `.env` file in the root directory and add your database connection string and JWT secret:
+    ```env
+    DATABASE_URL="postgresql://username:password@localhost:5432/synchr_db?schema=public"
+    JWT_SECRET="your-secret-key-here"
+    ```
 
----
+4.  **Database Setup**
+    Push the schema to your database and seed it with test data:
+    ```bash
+    npx prisma migrate dev --name init
+    # The seed script should run automatically. If not, run:
+    # npx prisma db seed
+    ```
 
-## 🛠 Tech Stack
+5.  **Run the Application**
+    ```bash
+    npm run dev
+    ```
 
-- **Frontend:** Next.js  
-- **Backend:** Node.js  
-- **Database:** MongoDB  
-- **Stack:** MERN  
+    The application will be available at `http://localhost:3000`.
 
----
+### Default Credentials
 
-## ⚙️ Setup Instructions
+Use these credentials to log in and test the application:
 
-1. Clone the repository  
-   ```bash
-   git clone <repository-url>
+**Admin Account**
+- **Email:** `lisa.c@example.com`
+- **Password:** `password123`
+
+**Employee Account**
+- **Email:** `alex.j@example.com`
+- **Password:** `password123`
