@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPassword, signToken } from '@/lib/auth';
+import { AUTH_ERRORS } from '@/constants/errors';
 
 export async function POST(req: Request) {
     try {
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
 
         if (!name || !email || !password) {
             return NextResponse.json(
-                { success: false, message: 'Missing required fields' },
+                { success: false, message: AUTH_ERRORS.MISSING_FIELDS },
                 { status: 400 }
             );
         }
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
 
         if (existingUser) {
             return NextResponse.json(
-                { success: false, message: 'Email already exists' },
+                { success: false, message: AUTH_ERRORS.EMAIL_EXISTS },
                 { status: 400 }
             );
         }
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error('SIGNUP_ERROR', error);
         return NextResponse.json(
-            { success: false, message: 'Internal server error' },
+            { success: false, message: AUTH_ERRORS.INTERNAL_SERVER_ERROR },
             { status: 500 }
         );
     }

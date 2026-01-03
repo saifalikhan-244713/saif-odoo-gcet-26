@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import FormInput from '@/components/FormInput';
 import Link from 'next/link';
+import { ROLE_REDIRECTS, DEFAULT_REDIRECT } from '@/constants/routes';
 import { useRouter } from 'next/navigation';
 
 export default function SignIn() {
@@ -31,17 +32,26 @@ export default function SignIn() {
             });
 
             const data = await res.json();
+            console.log("hello");
+            console.log(data);
 
             if (!res.ok) {
                 throw new Error(data.message || 'Invalid credentials');
             }
 
+
+            // ... (existing imports)
+
+            // Inside handleSubmit function, after successful login:
             // Save token (locally for now, usually handled by HttpOnly cookie or session provider)
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('role', data.role);
+            localStorage.setItem('status', data.status);
+            // localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Redirect to dashboard
-            router.push('/dashboard');
+            // Redirect based on role
+            const redirectPath = ROLE_REDIRECTS[data.role] || DEFAULT_REDIRECT;
+            router.push(redirectPath);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -52,11 +62,7 @@ export default function SignIn() {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="flex justify-center items-center gap-2 mb-6">
-                    {/* Placeholder for Logo */}
-                    <div className="h-8 w-8 bg-blue-100 rounded text-blue-600 flex items-center justify-center font-bold">{'>_'}</div>
-                    <span className="text-xl font-bold text-gray-900">DevScale</span>
-                </div>
+
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <h2 className="text-center text-2xl font-bold text-gray-900 mb-2">
                         Welcome back
@@ -107,29 +113,7 @@ export default function SignIn() {
                         </div>
                     </form>
 
-                    <div className="mt-6">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-gray-500">
-                                    OR CONTINUE WITH
-                                </span>
-                            </div>
-                        </div>
 
-                        <div className="mt-6 grid grid-cols-2 gap-3">
-                            <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                <span className="sr-only">Sign in with Google</span>
-                                Google
-                            </button>
-                            <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                <span className="sr-only">Sign in with GitHub</span>
-                                GitHub
-                            </button>
-                        </div>
-                    </div>
                     <div className="mt-6 text-center text-sm">
                         <span className="text-gray-600">Don't have an account? </span>
                         <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">

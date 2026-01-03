@@ -14,16 +14,102 @@ enum Role {
   HR
 }
 
+enum UserStatus {
+  CHECK_IN
+  CHECK_OUT
+}
+
 model User {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
   firstName   String?
   lastName    String?
-  email       String   @unique
+  email       String     @unique
   password    String
-  role        Role     @default(USER)
+  role        Role       @default(USER)
+  status      UserStatus @default(CHECK_OUT)
   companyName String?
-  empId       String?  @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  empId       String?    @unique
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  employeeProfile EmployeeProfile?
+}
+
+model EmployeeProfile {
+  id String @id @default(uuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+
+  personalEmail String?
+  phoneNumber String?
+  gender String?
+  dateOfBirth String? // Storing as string or DateTime? Form sends string "YYYY-MM-DD". Let's use String for simplicity or DateTime. DateTime is better. But form sends string. I'll use String for now to avoid parsing issues, or DateTime if I parse. let's use String for dob to match form easily, or DateTime if I parse. Form input type="date" returns string YYYY-MM-DD. Prisma DateTime expects ISO. I'll use String for dateOfBirth to be safe or DateTime. Let's use DateTime and parse in API.
+  // Actually, keeping it String is easier for "YYYY-MM-DD".
+  address String?
+  city String?
+  state String?
+  country String?
+  zipCode String?
+
+  emergencyContactName String?
+  emergencyContactNumber String?
+
+  department String?
+  designation String?
+  employmentStatus String?
+  employmentType String?
+
+  salaryStructure SalaryStructure?
+  documents EmployeeDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SalaryStructure {
+  id String @id @default(uuid())
+  employeeProfileId String @unique
+  employeeProfile EmployeeProfile @relation(fields: [employeeProfileId], references: [id])
+
+  monthlyWage Decimal?
+  yearlyWage Decimal?
+  workingDaysPerWeek Int?
+  breakTimeHours Decimal?
+
+  basicSalary Decimal?
+  hra Decimal?
+  standardAllowance Decimal?
+  performanceBonus Decimal?
+  lta Decimal?
+  fixedAllowance Decimal?
+
+  basicSalaryPercent Decimal?
+  hraPercent Decimal?
+  standardAllowancePercent Decimal?
+  performanceBonusPercent Decimal?
+  ltaPercent Decimal?
+  fixedAllowancePercent Decimal?
+
+  employeePfShareAmount Decimal?
+  employeePfSharePercent Decimal?
+  employerPfShareAmount Decimal?
+  employerPfSharePercent Decimal?
+
+  professionalTax Decimal?
+  estimatedNetPay Decimal?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmployeeDocument {
+  id String @id @default(uuid())
+  employeeProfileId String
+  employeeProfile EmployeeProfile @relation(fields: [employeeProfileId], references: [id])
+
+  name String
+  fileUrl String?
+
+  createdAt DateTime @default(now())
 }

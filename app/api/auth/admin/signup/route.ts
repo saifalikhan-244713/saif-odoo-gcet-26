@@ -1,31 +1,33 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPassword, signToken } from '@/lib/auth';
+import { AUTH_ERRORS } from '@/constants/errors';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('ADMIN SIGNUP BODY:', body);
     const { firstName, lastName, companyName, email, password, role } = body;
 
     // Manual Validation
     if (!firstName || firstName.length < 2) {
-      return NextResponse.json({ success: false, message: 'First name must be at least 2 characters' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.FIRST_NAME_TOO_SHORT }, { status: 400 });
     }
     if (!lastName || lastName.length < 2) {
-      return NextResponse.json({ success: false, message: 'Last name must be at least 2 characters' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.LAST_NAME_TOO_SHORT }, { status: 400 });
     }
     if (!companyName || companyName.length < 2) {
-      return NextResponse.json({ success: false, message: 'Company name is required' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.COMPANY_NAME_REQUIRED }, { status: 400 });
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-      return NextResponse.json({ success: false, message: 'Invalid email address' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.INVALID_EMAIL }, { status: 400 });
     }
     if (!password || password.length < 6) {
-      return NextResponse.json({ success: false, message: 'Password must be at least 6 characters' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.PASSWORD_TOO_SHORT }, { status: 400 });
     }
     if (role !== 'ADMIN' && role !== 'HR') {
-      return NextResponse.json({ success: false, message: 'Invalid role' }, { status: 400 });
+      return NextResponse.json({ success: false, message: AUTH_ERRORS.INVALID_ROLE }, { status: 400 });
     }
 
     // Check if email already exists
@@ -35,7 +37,7 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: 'Email already exists' },
+        { success: false, message: AUTH_ERRORS.EMAIL_EXISTS },
         { status: 400 }
       );
     }
@@ -72,7 +74,6 @@ export async function POST(req: Request) {
 
     // Final ID
     const empId = `${prefix}${firstPart}${lastPart}${currentYear}${serial}`;
-    // Example: John Doe, 2026, 1st user -> OIJODO20260001
 
     const hashedPassword = await hashPassword(password);
 
@@ -88,6 +89,8 @@ export async function POST(req: Request) {
         empId,
       },
     });
+
+    console.log('CREATED USER:', user);
 
     const token = signToken({
       userId: user.id,
@@ -112,7 +115,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('ADMIN_SIGNUP_ERROR', error);
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
+      { success: false, message: AUTH_ERRORS.INTERNAL_SERVER_ERROR },
       { status: 500 }
     );
   }

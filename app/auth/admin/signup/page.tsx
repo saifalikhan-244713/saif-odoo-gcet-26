@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import FormInput from '@/components/FormInput';
+import ErrorPopup from '@/components/ErrorPopup';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -14,18 +15,26 @@ export default function AdminSignUp() {
         role: 'ADMIN', // Default to ADMIN
         companyName: '',
         password: '',
+        confirmPassword: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (error) setError('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
 
         try {
             const payload = {
@@ -64,19 +73,21 @@ export default function AdminSignUp() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <ErrorPopup error={error} />
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="flex justify-center">
+                {/* <div className="flex justify-center">
                     <div className="h-10 w-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">DS</div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     Register Admin/HR
-                </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Create an account for administrative access.
-                </p>
+                </h2> */}
+
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <p className="py-4 bg-black rounded-t-3xl text-center text-md text-white font-inter">
+                    Create an account for administrative access.
+                </p>
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-2 gap-4">
@@ -146,9 +157,17 @@ export default function AdminSignUp() {
                             minLength={8}
                         />
 
-                        <p className="text-xs text-gray-500">Must be at least 8 characters.</p>
+                        <FormInput
+                            label="Confirm Password"
+                            name="confirmPassword"
+                            type="password"
+                            placeholder="••••••••"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            required
+                        />
 
-                        {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+                        <p className="text-xs text-gray-500">Must be at least 8 characters.</p>
 
                         <div>
                             <button
