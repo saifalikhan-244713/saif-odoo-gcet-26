@@ -2,7 +2,10 @@
 
 ## Getting Started
 
+## to register as Admin/HR please visit /auth/admin/signup page
+
 Follow these steps to set up and run the project locally.
+
 
 ### Prerequisites
 
@@ -11,6 +14,8 @@ Follow these steps to set up and run the project locally.
 - PostgreSQL (Ensure your database server is running)
 
 ### Installation
+
+## to register as Admin/HR please visit /auth/admin/signup page
 
 1.  **Clone the repository**
     ```bash
