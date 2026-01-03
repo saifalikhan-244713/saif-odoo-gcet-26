@@ -2,6 +2,7 @@ import React from 'react';
 
 interface Employee {
     id: string;
+    empId?: string;
     name: string;
     role: string;
     dept: string;
@@ -11,17 +12,19 @@ interface Employee {
 
 interface EmployeeListCardProps {
     employee: Employee;
+    onClick?: () => void;
 }
 
-const EmployeeListCard: React.FC<EmployeeListCardProps> = ({ employee }) => {
+const EmployeeListCard: React.FC<EmployeeListCardProps> = ({ employee, onClick }) => {
     return (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center relative group">
+        <div
+            onClick={onClick}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center relative group cursor-pointer"
+        >
 
             {/* Status Dot */}
             <div className="absolute top-4 right-4">
-                {employee.status === 'active' && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
-                {employee.status === 'on-leave' && <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>}
-                {employee.status === 'remote' && <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>}
+                <div className={`w-3 h-3 rounded-full ${employee.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
             </div>
 
             {/* Avatar */}
@@ -35,7 +38,7 @@ const EmployeeListCard: React.FC<EmployeeListCardProps> = ({ employee }) => {
 
             {/* Footer Info */}
             <div className="w-full flex justify-between items-center text-xs text-gray-500 border-t border-gray-100 pt-4 mt-auto">
-                <span className="font-mono">{employee.id}</span>
+                <span className="font-mono">{employee.empId || employee.id}</span>
                 <span>Dept: <span className="font-medium text-gray-900">{employee.dept}</span></span>
             </div>
         </div>

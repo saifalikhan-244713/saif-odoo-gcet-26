@@ -34,6 +34,7 @@ model User {
   updatedAt   DateTime   @updatedAt
 
   employeeProfile EmployeeProfile?
+  attendance      Attendance[]
 }
 
 model EmployeeProfile {
@@ -112,4 +113,18 @@ model EmployeeDocument {
   fileUrl String?
 
   createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  date       DateTime  @db.Date // Store just the date part for easier querying by day
+  checkIn    DateTime
+  checkOut   DateTime?
+  status     String // Present, Late In, Half Day
+  totalHours Decimal? // Stored as decimal hours (e.g. 8.5)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

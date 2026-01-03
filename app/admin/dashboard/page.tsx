@@ -1,14 +1,17 @@
 'use client';
 
 import AddEmployeeModal from '@/components/admin/AddEmployeeModal';
+import AttendanceTab from '@/components/admin/tabs/AttendanceTab';
 import EmployeeListCard from '@/components/employee/EmployeeListCard';
 import Sidebar from '@/components/shared/Sidebar';
+import Pagination from '@/components/shared/Pagination';
 import { useRouter } from 'next/navigation';
 
 import React, { useState, useEffect } from 'react';
 
 interface Employee {
     id: string;
+    empId?: string; // Custom ID for display
     name: string;
     role: string;
     dept: string;
@@ -24,11 +27,20 @@ export default function AdminDashboard() {
     const [userStatus, setUserStatus] = useState('CHECK_OUT');
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // Dropdown state
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 8;
 
     useEffect(() => {
         const fetchEmployees = async () => {
+            const token = localStorage.getItem('token');
             try {
-                const res = await fetch('/api/admin/employees');
+                const res = await fetch('/api/admin/employees', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await res.json();
                 if (data.success) {
                     setEmployees(data.employees);
@@ -57,6 +69,42 @@ export default function AdminDashboard() {
         router.push('/signin');
     };
 
+    const handleAttendanceToggle = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const endpoint = userStatus === 'CHECK_IN' ? '/api/attendance/check-out' : '/api/attendance/check-in';
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const newStatus = userStatus === 'CHECK_IN' ? 'CHECK_OUT' : 'CHECK_IN';
+                setUserStatus(newStatus);
+                localStorage.setItem('status', newStatus);
+            } else {
+                alert(data.message || 'Error updating attendance');
+            }
+        } catch (error) {
+            console.error('Attendance error:', error);
+            alert('An error occurred. Please try again.');
+        }
+    };
+
+    // Filter Logic
+    const filteredEmployees = employees.filter(emp => {
+        const query = searchQuery.toLowerCase();
+        return (
+            emp.name.toLowerCase().includes(query) ||
+            emp.role.toLowerCase().includes(query) ||
+            (emp.empId && emp.empId.toLowerCase().includes(query))
+        );
+    });
+
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             <Sidebar
@@ -66,11 +114,24 @@ export default function AdminDashboard() {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 userStatus={userStatus}
+                onToggleStatus={handleAttendanceToggle}
             />
 
             <AddEmployeeModal
-                isOpen={isAddEmployeeModalOpen}
-                onClose={() => setIsAddEmployeeModalOpen(false)}
+                isOpen={isAddEmployeeModalOpen || !!selectedEmployee}
+                onClose={() => {
+                    setIsAddEmployeeModalOpen(false);
+                    setSelectedEmployee(null);
+                }}
+                employeeId={selectedEmployee?.empId || selectedEmployee?.id}
+                initialData={selectedEmployee ? {
+                    firstName: selectedEmployee.name.split(' ')[0],
+                    lastName: selectedEmployee.name.split(' ').slice(1).join(' '),
+                    department: selectedEmployee.dept,
+                    designation: selectedEmployee.role,
+                    // We need to fetch full details really, but this is a start for visual
+                    // To do this properly, AddEmployeeModal should probably fetch details by ID if provided
+                } : undefined}
             />
 
             {/* Navbar */}
@@ -103,9 +164,12 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-4">
                     {/* Desktop Check In and Profile */}
                     <div className="hidden md:flex items-center gap-4">
-                        <button className="bg-red-100 text-red-600 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 hover:bg-red-200 transition-colors">
-                            <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                            Check In
+                        <button
+                            onClick={handleAttendanceToggle}
+                            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-colors ${userStatus === 'CHECK_IN' ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                        >
+                            <span className={`w-2 h-2 rounded-full ${userStatus === 'CHECK_IN' ? 'bg-red-600' : 'bg-green-600'}`}></span>
+                            {userStatus === 'CHECK_IN' ? 'Check Out' : 'Check In'}
                         </button>
 
                         {/* Profile Dropdown Container */}
@@ -161,48 +225,54 @@ export default function AdminDashboard() {
             {/* Main Content */}
             <main className="px-8 py-8">
 
-                {/* Action Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <button
-                        onClick={() => setIsAddEmployeeModalOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
-                    >
-                        <span className="text-xl leading-none">+</span> New Employee
-                    </button>
+                {activeTab === 'Employees' && (
+                    <>
+                        {/* Action Header */}
+                        <div className="flex justify-between items-center mb-8">
+                            <button
+                                onClick={() => setIsAddEmployeeModalOpen(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition-colors"
+                            >
+                                <span className="text-xl leading-none">+</span> New Employee
+                            </button>
 
-                    <div className="relative w-96">
-                        <input
-                            type="text"
-                            placeholder="Search employees by name, role..."
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-gray-700 placeholder-gray-400"
+                            <div className="relative w-96">
+                                <input
+                                    type="text"
+                                    placeholder="Search employees by name, role..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm text-gray-700 placeholder-gray-400"
+                                />
+                                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+
+
+                        {/* Employee Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {filteredEmployees.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((emp) => (
+                                <EmployeeListCard
+                                    key={emp.id}
+                                    employee={emp}
+                                    onClick={() => setSelectedEmployee(emp)}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={employees.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={(page) => setCurrentPage(page)}
                         />
-                        <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                </div>
+                    </>
+                )}
 
-                {/* Employee Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {employees.map((emp) => (
-                        <EmployeeListCard key={emp.id} employee={emp} />
-                    ))}
-                </div>
-
-                {/* Footer / Pagination */}
-                <div className="mt-8 bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Showing <span className="font-medium text-gray-900">1</span> to <span className="font-medium text-gray-900">8</span> of <span className="font-medium text-gray-900">97</span> results</span>
-
-                    <div className="flex gap-2">
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 text-sm">‹</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded bg-indigo-600 text-white text-sm font-medium shadow-sm">1</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm">2</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm">3</button>
-                        <span className="w-8 h-8 flex items-center justify-center text-gray-400">...</span>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm">8</button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-50 text-sm">›</button>
-                    </div>
-                </div>
+                {activeTab === 'Attendance' && <AttendanceTab />}
 
             </main>
 

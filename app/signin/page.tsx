@@ -114,12 +114,12 @@ export default function SignIn() {
                     </form>
 
 
-                    <div className="mt-6 text-center text-sm">
+                    {/* <div className="mt-6 text-center text-sm">
                         <span className="text-gray-600">Don't have an account? </span>
-                        <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                        <Link href="" className="font-medium text-blue-600 hover:text-blue-500">
                             Sign up
                         </Link>
-                    </div>
+                    </div> */}
                 </div>
                 <div className="mt-6 flex justify-center space-x-6 text-xs text-gray-400">
                     <span>Terms of Service</span>

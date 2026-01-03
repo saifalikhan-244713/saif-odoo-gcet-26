@@ -22,3 +22,7 @@ export const hashPassword = async (password: string) => {
 export const comparePassword = async (password: string, hashed: string) => {
     return await bcrypt.compare(password, hashed);
 };
+
+export const verifyToken = (token: string) => {
+    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+};

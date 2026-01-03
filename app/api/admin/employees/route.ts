@@ -151,28 +151,62 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
         const users = await prisma.user.findMany({
             where: {
                 role: {
-                    in: [Role.USER, Role.HR, Role.ADMIN] // Fetch all for now, maybe filter later
+                    in: [Role.USER, Role.HR, Role.ADMIN]
                 }
             },
             include: {
-                employeeProfile: true
+                employeeProfile: true,
+                attendance: {
+                    where: {
+                        date: {
+                            gte: startOfDay,
+                            lt: endOfDay
+                        }
+                    },
+                    take: 1
+                }
             },
             orderBy: {
                 createdAt: 'desc'
             }
         });
 
-        const employees = users.map(user => ({
-            id: user.empId || user.id,
-            name: user.name,
-            role: user.employeeProfile?.designation || user.role,
-            dept: user.employeeProfile?.department || 'N/A',
-            status: user.status === 'CHECK_IN' ? 'active' : 'remote', // Simple mapping for now
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
-        }));
+        const employees = users.map(user => {
+            let status = 'remote'; // Default (Blue Arrow)
+
+            // Check Attendance for today
+            const todayAttendance = user.attendance[0];
+
+            if (todayAttendance) {
+                if (['Present', 'Late In', 'Half Day'].includes(todayAttendance.status)) {
+                    status = 'active'; // Green Dot
+                } else if (todayAttendance.status === 'On Leave') {
+                    status = 'on-leave'; // Yellow Dot
+                } else if (todayAttendance.status === 'Absent') {
+                    status = 'absent'; // Red Dot (Will add support)
+                }
+            } else if (user.status === 'CHECK_IN') {
+                // Fallback to User status if attendance record missing but user is checked in
+                status = 'active';
+            }
+
+            return {
+                id: user.id,
+                empId: user.empId || 'N/A',
+                name: user.name,
+                role: user.employeeProfile?.designation || user.role,
+                dept: user.employeeProfile?.department || 'N/A',
+                status: status,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
+            };
+        });
 
         return NextResponse.json({ success: true, employees });
     } catch (error) {

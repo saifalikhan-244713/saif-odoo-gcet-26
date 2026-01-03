@@ -6,9 +6,10 @@ interface SidebarProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
     userStatus?: string;
+    onToggleStatus?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, setActiveTab, userStatus = 'CHECK_OUT' }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, setActiveTab, userStatus = 'CHECK_OUT', onToggleStatus }) => {
     // Prevent scrolling when sidebar is open is usually handled by a useEffect in the parent or here, 
     // but for simplicity we'll focus on layout.
 
@@ -78,7 +79,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, setActive
 
                 {/* Footer Check In */}
                 <div className="p-4 border-t border-gray-200">
-                    <button className={`w-full px-4 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${isCheckedIn ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                    <button
+                        onClick={onToggleStatus}
+                        className={`w-full px-4 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${isCheckedIn ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
                         <span className={`w-2 h-2 rounded-full ${isCheckedIn ? 'bg-green-600' : 'bg-red-600'}`}></span>
                         {isCheckedIn ? 'Check Out' : 'Check In'}
                     </button>

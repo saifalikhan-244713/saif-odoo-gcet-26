@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import BasicDetailsTab from '@/components/admin/tabs/BasicDetailsTab';
 import DocumentsTab from '@/components/admin/tabs/DocumentsTab';
 import SalaryTab from '@/components/admin/tabs/SalaryTab';
+import AttendanceHistoryTab from '@/components/admin/tabs/AttendanceHistoryTab';
 
 interface AddEmployeeModalProps {
     isOpen: boolean;
     onClose: () => void;
+    employeeId?: string | null; // For Edit/View mode
+    initialData?: any; // To populate form
 }
 
-const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) => {
+const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose, employeeId, initialData }) => {
     const [activeTab, setActiveTab] = useState('Basic Details');
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -33,6 +36,8 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
     const removeDocument = (id: number) => {
         setDocuments(documents.filter(doc => doc.id !== id));
     };
+
+
 
     // Form State
     const [formData, setFormData] = useState({
@@ -87,6 +92,34 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
         estimatedNetPay: '',
     });
 
+    // Generic Input Handler
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Percentage Input Handler
+    const handlePercentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const generatePassword = () => {
+        const length = 12;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        let retVal = "";
+        for (let i = 0, n = charset.length; i < length; ++i) {
+            retVal += charset.charAt(Math.floor(Math.random() * n));
+        }
+        return retVal;
+    };
+
     // Salary Calculation Effect
     useEffect(() => {
         const monthly = parseFloat(formData.monthlyWage) || 0;
@@ -138,119 +171,143 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
         formData.professionalTax
     ]);
 
-    if (!isOpen) return null;
+    // Fetch Full Details if in Edit Mode
+    useEffect(() => {
+        const fetchEmployeeDetails = async () => {
+            if (employeeId) {
+                try {
+                    setLoading(true);
+                    const res = await fetch(`/api/admin/employees/${employeeId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    const data = await res.json();
 
+                    if (data.success && data.employee) {
+                        const emp = data.employee;
+                        const profile = emp.employeeProfile || {};
+                        const salary = profile.salaryStructure || {};
 
+                        setFormData({
+                            firstName: emp.firstName || '',
+                            lastName: emp.lastName || '',
+                            workEmail: emp.email || '',
+                            personalEmail: profile.personalEmail || '',
+                            phoneNumber: profile.phoneNumber || '',
+                            gender: profile.gender || '',
+                            dateOfBirth: profile.dateOfBirth || '',
+                            address: profile.address || '',
+                            city: profile.city || '',
+                            state: profile.state || '',
+                            country: profile.country || '',
+                            zipCode: profile.zipCode || '',
+                            emergencyContactName: profile.emergencyContactName || '',
+                            emergencyContactNumber: profile.emergencyContactNumber || '',
+                            designation: profile.designation || '',
+                            department: profile.department || '',
+                            systemRole: emp.role || '',
+                            employmentStatus: profile.employmentStatus || 'Active',
+                            employmentType: profile.employmentType || 'Full-time',
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+                            // Salary - Convert numbers to strings for inputs
+                            monthlyWage: salary.monthlyWage?.toString() || '',
+                            yearlyWage: salary.yearlyWage?.toString() || '',
+                            workingDaysPerWeek: salary.workingDaysPerWeek?.toString() || '',
+                            breakTimeHours: salary.breakTimeHours?.toString() || '',
 
-    const handlePercentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const fieldName = e.target.name;
-        let newValue = parseFloat(e.target.value);
-        if (isNaN(newValue)) newValue = 0;
-        if (newValue > 100) newValue = 100;
+                            basicSalary: salary.basicSalary?.toString() || '',
+                            hra: salary.hra?.toString() || '',
+                            standardAllowance: salary.standardAllowance?.toString() || '',
+                            performanceBonus: salary.performanceBonus?.toString() || '',
+                            lta: salary.lta?.toString() || '',
+                            fixedAllowance: salary.fixedAllowance?.toString() || '',
 
-        const oldValue = parseFloat(formData[fieldName as keyof typeof formData] as string) || 0;
-        const difference = newValue - oldValue;
+                            // Percents
+                            basicSalaryPercent: salary.basicSalaryPercent?.toString() || '40',
+                            hraPercent: salary.hraPercent?.toString() || '20',
+                            standardAllowancePercent: salary.standardAllowancePercent?.toString() || '10',
+                            performanceBonusPercent: salary.performanceBonusPercent?.toString() || '10',
+                            ltaPercent: salary.ltaPercent?.toString() || '5',
+                            fixedAllowancePercent: salary.fixedAllowancePercent?.toString() || '3',
 
-        // If no change, return
-        if (difference === 0) return;
-
-        let updatedFormData = { ...formData, [fieldName]: newValue.toString() };
-
-        // Sacrifice Order (Who loses value when someone gains, or gains when someone loses)
-        // Reverse order of importance: Fixed -> LTA -> Bonus -> Standard -> HRA -> Basic
-        const sacrificeOrder = [
-            'fixedAllowancePercent',
-            'ltaPercent',
-            'performanceBonusPercent',
-            'standardAllowancePercent',
-            'hraPercent',
-            'employerPfSharePercent',
-            'employeePfSharePercent',
-            'basicSalaryPercent'
-        ];
-
-        // Filter out the current field being edited
-        const targets = sacrificeOrder.filter(f => f !== fieldName);
-
-        if (difference > 0) {
-            // INCREASE: Subtract from others
-            let remainingDiff = difference;
-
-            for (const target of targets) {
-                if (remainingDiff <= 0.001) break;
-
-                const currentVal = parseFloat(formData[target as keyof typeof formData] as string) || 0;
-
-                if (currentVal > 0) {
-                    const takeAmount = Math.min(currentVal, remainingDiff);
-                    updatedFormData = {
-                        ...updatedFormData,
-                        [target]: (currentVal - takeAmount).toFixed(2)
-                    };
-                    remainingDiff -= takeAmount;
+                            employeePfShareAmount: salary.employeePfShareAmount?.toString() || '',
+                            employeePfSharePercent: salary.employeePfSharePercent?.toString() || '12.00',
+                            employerPfShareAmount: salary.employerPfShareAmount?.toString() || '',
+                            employerPfSharePercent: salary.employerPfSharePercent?.toString() || '12.00',
+                            professionalTax: salary.professionalTax?.toString() || '',
+                            estimatedNetPay: salary.estimatedNetPay?.toString() || '',
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch employee details", error);
+                } finally {
+                    setLoading(false);
                 }
             }
-        } else {
-            // DECREASE: Add to Fixed Allowance (or Basic if Fixed is the one changing)
-            // Ideally, everything goes to Fixed Allowance
-            let targetAdd = 'fixedAllowancePercent';
-            if (fieldName === 'fixedAllowancePercent') targetAdd = 'basicSalaryPercent'; // Failover to Basic if Fixed is edited
+        };
 
-            const currentTargetVal = parseFloat(formData[targetAdd as keyof typeof formData] as string) || 0;
-            updatedFormData = {
-                ...updatedFormData,
-                [targetAdd]: (currentTargetVal + Math.abs(difference)).toFixed(2)
-            };
+        if (isOpen && employeeId) {
+            fetchEmployeeDetails();
+        } else if (initialData && !employeeId) {
+            setFormData(prev => ({ ...prev, ...initialData }));
         }
-
-        setFormData(updatedFormData);
-    };
-
-    const generatePassword = () => {
-        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
-        let pass = "";
-        for (let i = 0; i < 10; i++) {
-            pass += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return pass;
-    };
+    }, [isOpen, employeeId, initialData]);
 
     const handleSubmit = async () => {
         setLoading(true);
         setSubmitError(null);
         try {
-            // Auto-generate password
-            const generatedPassword = generatePassword();
-            const payload = { ...formData, password: generatedPassword };
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
 
-            console.log("Submitting payload:", payload);
-            const response = await fetch('/api/admin/employees', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
+            let response;
+            let generatedPassword = '';
+
+            if (employeeId) {
+                // UPDATE MODE
+                response = await fetch(`/api/admin/employees/${employeeId}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify(formData),
+                });
+            } else {
+                // CREATE MODE
+                generatedPassword = generatePassword();
+                const payload = { ...formData, password: generatedPassword };
+
+                response = await fetch('/api/admin/employees', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload),
+                });
+            }
 
             const data = await response.json();
 
             if (response.ok) {
-                // Success! Show success modal
-                setCreatedCredentials({
-                    email: formData.workEmail,
-                    empId: data.user.empId || 'N/A',
-                    password: generatedPassword
-                });
-                setShowSuccess(true);
+                if (employeeId) {
+                    // Update Success - Just close or show toast
+                    alert("Employee updated successfully!");
+                    onClose();
+                    // trigger refresh in parent? parent handles fetching on modal close or change
+                } else {
+                    // Create Success
+                    setCreatedCredentials({
+                        email: formData.workEmail,
+                        empId: data.user.empId || 'N/A',
+                        password: generatedPassword
+                    });
+                    setShowSuccess(true);
+                }
             } else {
-                setSubmitError(data.message || 'Failed to create employee');
+                setSubmitError(data.message || 'Operation failed');
             }
         } catch (error) {
-            console.error('Error creating employee:', error);
+            console.error('Operation error:', error);
             setSubmitError('Something went wrong. Please try again.');
         } finally {
             setLoading(false);
@@ -269,7 +326,11 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
         onClose();
     };
 
-    const tabs = ['Basic Details', 'Documents', 'Salary']; // Example tabs
+    const tabs = employeeId
+        ? ['Basic Details', 'Documents', 'Salary', 'Attendance']
+        : ['Basic Details', 'Documents', 'Salary'];
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4 sm:p-6">
@@ -346,10 +407,10 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
                             <span>/</span>
                             <span>Employees</span>
                             <span>/</span>
-                            <span className="text-gray-900 font-medium">Create New</span>
+                            <span className="text-gray-900 font-medium">{employeeId ? 'View Details' : 'Create New'}</span>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">Create New Employee</h2>
-                        <p className="text-sm text-gray-500 mt-1">Fill in the details below to onboard a new team member.</p>
+                        <h2 className="text-2xl font-bold text-gray-900">{employeeId ? 'Employee Details' : 'Create New Employee'}</h2>
+                        <p className="text-sm text-gray-500 mt-1">{employeeId ? 'View and manage employee information.' : 'Fill in the details below to onboard a new team member.'}</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -399,6 +460,10 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
                             handlePercentChange={handlePercentChange}
                         />
                     )}
+
+                    {activeTab === 'Attendance' && employeeId && (
+                        <AttendanceHistoryTab employeeId={employeeId} />
+                    )}
                 </div>
 
                 {/* Footer Buttons */}
@@ -436,7 +501,7 @@ const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({ isOpen, onClose }) 
                                 ) : (
                                     <>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                        Create Employee
+                                        {employeeId ? 'Update Employee' : 'Create Employee'}
                                     </>
                                 )}
                             </button>
