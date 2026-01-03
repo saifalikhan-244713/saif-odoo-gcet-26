@@ -45,14 +45,3 @@ Follow these steps to set up and run the project locally.
 
     The application will be available at `http://localhost:3000`.
 
-### Default Credentials
-
-Use these credentials to log in and test the application:
-
-**Admin Account**
-- **Email:** `lisa.c@example.com`
-- **Password:** `password123`
-
-**Employee Account**
-- **Email:** `alex.j@example.com`
-- **Password:** `password123`
