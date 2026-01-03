@@ -55,7 +55,13 @@ export default function AdminDashboard() {
 
     React.useEffect(() => {
         const storedStatus = localStorage.getItem('status');
-        if (storedStatus) setUserStatus(storedStatus);
+        const role = localStorage.getItem('role');
+
+        if (role === 'ADMIN' || role === 'HR') {
+            setUserStatus('CHECK_OUT'); // Default to Green "Check In" button for Admin/HR
+        } else if (storedStatus) {
+            setUserStatus(storedStatus);
+        }
     }, []);
 
     const handleLogout = () => {
