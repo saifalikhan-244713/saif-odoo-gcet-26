@@ -3,6 +3,8 @@
 ## Getting Started
 
 ## to register as Admin/HR please visit /auth/admin/signup page
+video-explanation-link -> **https://drive.google.com/file/d/1S1C1oRHrE20UAuM7PUgDSjk9SXIkZec0/view?usp=sharing**
+email if any issues you face -> saifkhanali101@gmail.com
 
 Follow these steps to set up and run the project locally.
 
